@@ -1,0 +1,25 @@
+{
+  "2024-11-24": [
+    {
+      "id": "baeaf8e3-8281-4978-94ef-7b3daaefe149",
+      "time": "21:47",
+      "label": "test",
+      "day": "Sunday",
+      "active": true
+    },
+    {
+      "id": "48b30d55-13ef-48df-8cb3-0efa4749dedc",
+      "time": "21:51",
+      "label": "test",
+      "day": "Sunday",
+      "active": true
+    },
+    {
+      "id": "1343793b-d648-4df8-abc5-1a4f12398a6b",
+      "time": "21:55",
+      "label": "test",
+      "day": "Sunday",
+      "active": true
+    }
+  ]
+}
