@@ -56,7 +56,6 @@ app.get('/alarms/current', (req, res) => {
                 alarmDate.setSeconds(0);
 
                 const diff = alarmDate - currentDate; // Difference in milliseconds
-                console.log(diff)
                 if (diff <= 60000 && diff > 0) { // Check if the alarm is within 1 minute
                     return res.status(201).json({ isAlarm: true, alarm: alarm});
                 }
