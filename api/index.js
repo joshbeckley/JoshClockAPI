@@ -28,6 +28,10 @@ const writeAlarms = (data) => {
     fs.writeFileSync(ALARMS_FILE, JSON.stringify(data, null, 2));
 };
 
+app.get('/', (req, res) => {
+    res.send('Server Is Online');
+});
+
 // Route to get all alarms
 app.get('/alarms', (req, res) => {
     const db = readAlarms();
