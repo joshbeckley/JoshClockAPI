@@ -18,31 +18,22 @@ const pool = new Pool({
   },
 });
 
-async function fetchAllData() {
-    try {
-      const result = await pool.query('SELECT * FROM neon_data');
-      console.log('All Data:', result.rows);
-    } catch (error) {
-      console.error('Error fetching data:', error);
-    }
-  }
-  
-fetchAllData();
   
 // Middleware
 app.use(bodyParser.json());
 app.use(cors()); 
 
-// File to store alarms
-const ALARMS_FILE = './alarms.json';
-
 // Read all alarms from database
-const readAlarms = () => {
-    if (!fs.existsSync(ALARMS_FILE)) {
-        fs.writeFileSync(ALARMS_FILE, JSON.stringify({}));
+async function readAlarms() {
+    try {
+      const result = await pool.query('SELECT * FROM neon_data');
+      data = result.rows; // `rows` is an array of objects
+      return data; // You can now use this data as a JavaScript object
+    } catch (error) {
+      console.error('Error fetching data:', error);
+      return null; // Handle errors gracefully
     }
-    return JSON.parse(fs.readFileSync(ALARMS_FILE, 'utf8'));
-};
+  }
 
 // Write all data to database
 const writeAlarms = (data) => {
@@ -53,16 +44,25 @@ app.get('/', (req, res) => {
     res.send('Server Is Online');
 });
 
-// Route to get all alarms
-app.get('/alarms', (req, res) => {
-    const db = readAlarms();
-    res.json(db);
+app.get('/alarms', async (req, res) => {
+    try {
+        const db = await readAlarms(); // Wait for the promise to resolve
+        res.json(db); // Sends the resolved array as JSON
+    } catch (error) {
+        console.error('Error fetching alarms:', error);
+        res.status(500).json({ error: 'Failed to fetch alarms' }); // Handle errors gracefully
+    }
 });
 
 const days = ["Sunday", "Monday", "Tuesday", "Wednesday", "Thursday", "Friday", "Saturday"];
 
-app.get('/alarms/current', (req, res) => {
-    const db = readAlarms();
+app.get('/alarms/current', async (req, res) => {
+    try {
+        const db = await readAlarms(); // Wait for the promise to resolve
+    } catch (error) {
+        console.error('Error fetching alarms:', error);
+        res.status(500).json({ error: 'Failed to fetch alarms' }); // Handle errors gracefully
+    }
 
     // Vercel uses UTC time - so convert to UTC+2
     // TODO: convert when in production
@@ -93,8 +93,24 @@ app.get('/alarms/current', (req, res) => {
 });
 
 
+async function insertAlarm(alarm) {
+    const query = `
+      INSERT INTO neon_data (id, time, label, day, active)
+      VALUES ($1, $2, $3, $4, $5)
+      RETURNING *`;
+    const values = [alarm.id, alarm.time, alarm.label, alarm.day, alarm.active];
+  
+    try {
+      const result = await pool.query(query, values);
+      return result.rows[0];
+    } catch (error) {
+      console.error('Error inserting alarm:', error);
+      throw error; // Re-throw the error to handle it upstream if needed
+    }
+  }
+
 // Route to add an alarm for a specific day
-app.post('/alarms', (req, res) => {
+app.post('/alarms', async (req, res) => {
     const { date, time, label } = req.body;
     if (!date || !time) {
         return res.status(400).json({ error: 'Date and time are required.' });
@@ -107,65 +123,57 @@ app.post('/alarms', (req, res) => {
 
     d = new Date(date);
 
-    const newAlarm = {
+    const alarm = {
         id: uuidv4(), // Generate a unique ID
         time,
         label: label || 'No label',
         day: days[d.getDay()],
         active: true
     };
-
-    alarms[date].push(newAlarm);
-    writeAlarms(alarms);
-
-    res.status(201).json({ message: 'Alarm added successfully.', alarm: newAlarm });
+    try {
+        const newAlarm = await insertAlarm(alarm);
+        res.json({ success: true, message: 'Alarm inserted successfully', alarm: newAlarm });
+    } catch (error) {
+        res.status(500).json({ success: false, message: 'Error inserting alarm', error: error.message });
+    }
 });
+
+
+async function deleteAlarmById(alarmId) {
+    const query = 'DELETE FROM neon_data WHERE id = $1 RETURNING *'; // Use RETURNING to confirm deletion
+    try {
+      const result = await pool.query(query, [alarmId]);
+      if (result.rowCount > 0) {
+        console.log('Alarm deleted successfully:', result.rows[0]); // Log the deleted record
+        return result.rows[0];
+      } else {
+        console.log('No alarm found with the given ID.');
+        return null;
+      }
+    } catch (error) {
+      console.error('Error deleting alarm:', error);
+      throw error; // Re-throw the error to handle it upstream if needed
+    }
+  }
 
 // Route to delete alarm
-app.delete('/alarms', (req, res) => {
-    const { id, date } = req.body;
-    if (!id || !date) {
-        return res.status(400).json({ error: 'ID and date are required to delete an alarm.' });
+app.delete('/alarms', async (req, res) => {
+    const {id} = req.body
+    console.log(id)
+    try {
+      const deletedAlarm = await deleteAlarmById(id);
+      if (deletedAlarm) {
+        res.json({ success: true, message: 'Alarm deleted successfully', alarm: deletedAlarm });
+      } else {
+        res.status(404).json({ success: false, message: 'Alarm not found' });
+      }
+    } catch (error) {
+      res.status(500).json({ success: false, message: 'Error deleting alarm', error: error.message });
     }
-
-    const alarms = readAlarms();
-    if (!alarms[date]) {
-        return res.status(404).json({ error: 'No alarms found for this date.' });
-    }
-
-    const originalLength = alarms[date].length;
-    alarms[date] = alarms[date].filter((alarm) => alarm.id != id);
-
-    if (originalLength === alarms[date].length) {
-        return res.status(404).json({ error: 'No alarm found with the provided ID.' });
-    }
-
-    if (alarms[date].length === 0) {
-        delete alarms[date];
-    }
-
-    writeAlarms(alarms);
-    res.json({ message: 'Alarm deleted successfully.' });
-});
+  });
 
 
-// Route to clear all alarms for a specific date
-app.delete('/alarms/:date', (req, res) => {
-    const { date } = req.params;
 
-    const db = readAlarms();
-    if (!db[date]) {
-        return res.status(404).json({ error: 'No alarms found for this date.' });
-    }
-
-    delete db[date];
-    writeAlarms(db);
-
-    res.json({ message: `All alarms for ${date} deleted successfully.` });
-});
-
-
-pool.end();
 // Start the server
 app.listen(PORT, () => {
     console.log(`Server running at http://localhost:${PORT}`);
