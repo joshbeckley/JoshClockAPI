@@ -13,7 +13,7 @@ app.use(bodyParser.json());
 app.use(cors()); 
 
 // File to store alarms
-const ALARMS_FILE = 'alarms.json';
+const ALARMS_FILE = './alarms.json';
 
 // Read all alarms from database
 const readAlarms = () => {
