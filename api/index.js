@@ -8,6 +8,27 @@ const fs = require('fs');
 const app = express();
 const PORT = 3000;
 
+const { Pool } = require('pg');
+
+// Replace with your Neon connection details
+const pool = new Pool({
+  connectionString: 'postgres://neondb_owner:INHKb2wQJ3Yk@ep-polished-violet-a23xv7vs-pooler.eu-central-1.aws.neon.tech/neondb?sslmode=require',
+  ssl: {
+    rejectUnauthorized: false, // Required for Neon
+  },
+});
+
+async function fetchAllData() {
+    try {
+      const result = await pool.query('SELECT * FROM neon_data');
+      console.log('All Data:', result.rows);
+    } catch (error) {
+      console.error('Error fetching data:', error);
+    }
+  }
+  
+fetchAllData();
+  
 // Middleware
 app.use(bodyParser.json());
 app.use(cors()); 
@@ -143,6 +164,8 @@ app.delete('/alarms/:date', (req, res) => {
     res.json({ message: `All alarms for ${date} deleted successfully.` });
 });
 
+
+pool.end();
 // Start the server
 app.listen(PORT, () => {
     console.log(`Server running at http://localhost:${PORT}`);
