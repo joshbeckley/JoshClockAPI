@@ -68,20 +68,20 @@ app.get('/alarms/current', async (req, res) => {
         
         let currentDay = days[currentDate.getDay()]; // Get the current day of the week (0-6)
         
-        db.forEach(alarm => {
-            if (alarm.day === currentDay) {  // Compare the current day to the alarm's day
-                let alarmDate = new Date(alarm.date);  // Convert the string date to a Date object
-                const [hours, minutes] = alarm.time.split(":").map(Number);
-                alarmDate.setHours(hours);
-                alarmDate.setMinutes(minutes);
-                alarmDate.setSeconds(0);
+        for (const alarm of db) {
+          if (alarm.day === currentDay) {  // Compare the current day to the alarm's day
+              const alarmDate = new Date(alarm.date);
+              const [hours, minutes] = alarm.time.split(":").map(Number);
+              alarmDate.setHours(hours);
+              alarmDate.setMinutes(minutes);
+              alarmDate.setSeconds(0);
 
-                const diff = alarmDate - currentDate; // Difference in milliseconds
-                if (diff <= 60000 && diff > 0) { // Check if the alarm is within 1 minute
-                    return res.status(201).json({ isAlarm: true, alarm: alarm});
-                }
-            }
-        });
+              const diff = alarmDate - currentDate; // Difference in milliseconds
+              if (diff <= 60000 && diff > 0) { // Check if the alarm is within 1 minute
+                  return res.status(201).json({ isAlarm: true, alarm });
+              }
+          }
+      }
         
 
         return res.status(200).json({ isAlarm: false, alarm: null}); 
@@ -97,30 +97,22 @@ app.get('/alarms/current', async (req, res) => {
 
 app.get('/alarms/current/today', async (req, res) => {
   try {
-      const db = await readAlarms(); // Wait for the promise to resolve
+      const db = await readAlarms();
+      const currentDate = new Date();
+      currentDate.setHours(currentDate.getHours() + 2); // Convert to UTC+2
+      const currentDay = days[currentDate.getDay()];
 
-          // Vercel uses UTC time - so convert to UTC+2
-      // TODO: convert when in production
-      let currentDate = new Date(); // Get the current date and time
-      currentDate.setHours(currentDate.getHours() + 2); // Convert to UTC+2 time
-      
-      let currentDay = days[currentDate.getDay()]; // Get the current day of the week (0-6)
-      
-      db.forEach(alarm => {
-          if (alarm.day === currentDay) {  // Compare the current day to the alarm's day
-            return res.status(201).json({ isAlarm: true, alarm: alarm});
-          }
-      });
-      
+      const alarm = db.find(alarm => alarm.day === currentDay); // Find the first alarm for today
 
-      return res.status(200).json({ isAlarm: false, alarm: null}); 
+      if (alarm) {
+          return res.status(201).json({ isAlarm: true, alarm });
+      }
+
+      res.status(200).json({ isAlarm: false, alarm: null }); 
   } catch (error) {
       console.error('Error fetching alarms:', error);
-      res.status(500).json({ error: 'Failed to fetch alarms' }); // Handle errors gracefully
+      res.status(500).json({ error: 'Failed to fetch alarms' });
   }
-
-  
-  
 });
 
 
