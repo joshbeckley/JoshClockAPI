@@ -103,7 +103,7 @@ app.get('/alarms/current/today', async (req, res) => {
           // Vercel uses UTC time - so convert to UTC+2
       // TODO: convert when in production
       let currentDate = new Date(); // Get the current date and time
-      // currentDate.setHours(currentDate.getHours() + 2); // Convert to UTC+2 time
+      currentDate.setHours(currentDate.getHours() + 2); // Convert to UTC+2 time
       
       let currentDay = days[currentDate.getDay()]; // Get the current day of the week (0-6)
       console.log(db)
