@@ -110,7 +110,7 @@ app.get('/alarms/current/today', async (req, res) => {
       
       db.forEach(alarm => {
           if (alarm.day === currentDay) {  // Compare the current day to the alarm's day
-            return res.status(201).json({ isAlarm: true, alarm: alarm});
+            return res.status(201).json({ isAlarm: true, alarm: alarm, currentTime: currentDate.getTime()});
           }
       });
       
