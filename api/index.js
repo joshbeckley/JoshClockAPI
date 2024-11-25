@@ -56,25 +56,22 @@ app.get('/alarms', async (req, res) => {
 
 const days = ["Sunday", "Monday", "Tuesday", "Wednesday", "Thursday", "Friday", "Saturday"];
 
+// TODO: DOESNT WORK
 app.get('/alarms/current', async (req, res) => {
     try {
         const db = await readAlarms(); // Wait for the promise to resolve
-    } catch (error) {
-        console.error('Error fetching alarms:', error);
-        res.status(500).json({ error: 'Failed to fetch alarms' }); // Handle errors gracefully
-    }
 
-    // Vercel uses UTC time - so convert to UTC+2
-    // TODO: convert when in production
-    let currentDate = new Date(); // Get the current date and time
-    // currentDate.setHours(currentDate.getHours() + 2); // Convert to UTC+2 time
-    
-    let currentDay = days[currentDate.getDay()]; // Get the current day of the week (0-6)
-
-    for (const [date, alarmList] of Object.entries(db)) {
-        alarmList.forEach(alarm => {
+            // Vercel uses UTC time - so convert to UTC+2
+        // TODO: convert when in production
+        let currentDate = new Date(); // Get the current date and time
+        // currentDate.setHours(currentDate.getHours() + 2); // Convert to UTC+2 time
+        
+        let currentDay = days[currentDate.getDay()]; // Get the current day of the week (0-6)
+        console.log(db)
+        
+        db.forEach(alarm => {
             if (alarm.day === currentDay) {  // Compare the current day to the alarm's day
-                let alarmDate = new Date(date);  // Convert the string date to a Date object
+                let alarmDate = new Date(alarm.date);  // Convert the string date to a Date object
                 const [hours, minutes] = alarm.time.split(":").map(Number);
                 alarmDate.setHours(hours);
                 alarmDate.setMinutes(minutes);
@@ -86,10 +83,46 @@ app.get('/alarms/current', async (req, res) => {
                 }
             }
         });
-    };
+        
 
-    return res.status(200).json({ isAlarm: false, alarm: null}); 
+        return res.status(200).json({ isAlarm: false, alarm: null}); 
+    } catch (error) {
+        console.error('Error fetching alarms:', error);
+        res.status(500).json({ error: 'Failed to fetch alarms' }); // Handle errors gracefully
+    }
+
     
+    
+});
+
+
+app.get('/alarms/current/today', async (req, res) => {
+  try {
+      const db = await readAlarms(); // Wait for the promise to resolve
+
+          // Vercel uses UTC time - so convert to UTC+2
+      // TODO: convert when in production
+      let currentDate = new Date(); // Get the current date and time
+      // currentDate.setHours(currentDate.getHours() + 2); // Convert to UTC+2 time
+      
+      let currentDay = days[currentDate.getDay()]; // Get the current day of the week (0-6)
+      console.log(db)
+      
+      db.forEach(alarm => {
+          if (alarm.day === currentDay) {  // Compare the current day to the alarm's day
+            return res.status(201).json({ isAlarm: true, alarm: alarm});
+          }
+      });
+      
+
+      return res.status(200).json({ isAlarm: false, alarm: null}); 
+  } catch (error) {
+      console.error('Error fetching alarms:', error);
+      res.status(500).json({ error: 'Failed to fetch alarms' }); // Handle errors gracefully
+  }
+
+  
+  
 });
 
 
