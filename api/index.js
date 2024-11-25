@@ -67,7 +67,6 @@ app.get('/alarms/current', async (req, res) => {
         // currentDate.setHours(currentDate.getHours() + 2); // Convert to UTC+2 time
         
         let currentDay = days[currentDate.getDay()]; // Get the current day of the week (0-6)
-        console.log(db)
         
         db.forEach(alarm => {
             if (alarm.day === currentDay) {  // Compare the current day to the alarm's day
@@ -106,11 +105,10 @@ app.get('/alarms/current/today', async (req, res) => {
       currentDate.setHours(currentDate.getHours() + 2); // Convert to UTC+2 time
       
       let currentDay = days[currentDate.getDay()]; // Get the current day of the week (0-6)
-      console.log(db)
       
       db.forEach(alarm => {
           if (alarm.day === currentDay) {  // Compare the current day to the alarm's day
-            return res.status(201).json({ isAlarm: true, alarm: alarm, currentTime: currentDate.getTime()});
+            return res.status(201).json({ isAlarm: true, alarm: alarm});
           }
       });
       
