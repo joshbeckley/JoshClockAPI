@@ -98,7 +98,7 @@ app.get('/alarms/current', async (req, res) => {
 app.get('/alarms/current/today', async (req, res) => {
   try {
       const db = await readAlarms();
-      const currentDate = Date.now();
+      const currentDate = new Date(Date.now());
       currentDate.setHours(currentDate.getHours() + 2); // Convert to UTC+2
       const currentDay = days[currentDate.getDay()];
 
