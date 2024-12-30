@@ -26,7 +26,7 @@ app.use(cors());
 // Read all alarms from database
 async function readAlarms() {
     try {
-      const result = await pool.query('SELECT * FROM neon_data');
+      const result = await pool.query('SELECT * FROM alarms');
       data = result.rows; // `rows` is an array of objects
       return data; // You can now use this data as a JavaScript object
     } catch (error) {
@@ -118,7 +118,7 @@ app.get('/alarms/current/today', async (req, res) => {
 
 async function insertAlarm(alarm) {
     const query = `
-      INSERT INTO neon_data (id, time, label, day, active)
+      INSERT INTO alarms (id, time, label, day, active)
       VALUES ($1, $2, $3, $4, $5)
       RETURNING *`;
     const values = [alarm.id, alarm.time, alarm.label, alarm.day, alarm.active];
@@ -163,7 +163,7 @@ app.post('/alarms', async (req, res) => {
 
 
 async function deleteAlarmById(alarmId) {
-    const query = 'DELETE FROM neon_data WHERE id = $1 RETURNING *'; // Use RETURNING to confirm deletion
+    const query = 'DELETE FROM alarms WHERE id = $1 RETURNING *'; // Use RETURNING to confirm deletion
     try {
       const result = await pool.query(query, [alarmId]);
       if (result.rowCount > 0) {
