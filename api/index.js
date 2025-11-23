@@ -11,6 +11,8 @@ const PORT = 3000;
 
 const { Pool } = require('pg');
 
+let lastTimeChecked = "None"
+
 // Replace with your Neon connection details
 const pool = new Pool({
   connectionString: 'postgres://neondb_owner:INHKb2wQJ3Yk@ep-polished-violet-a23xv7vs-pooler.eu-central-1.aws.neon.tech/neondb?sslmode=require',
@@ -39,7 +41,7 @@ async function readAlarms() {
 
 app.get('/', (req, res) => {
   console.log("[SERVER]: Online");
-  res.send('Server Is Online');
+  res.send(`Server Is Online - /alarms/current/today called: ${lastTimeChecked}`);
 });
 
 app.get('/alarms', async (req, res) => {
@@ -55,12 +57,18 @@ app.get('/alarms', async (req, res) => {
 
 const days = ["Sunday", "Monday", "Tuesday", "Wednesday", "Thursday", "Friday", "Saturday"];
 
+function formatReadableDate(date = DateTime.now()) {
+  return date.setZone('Africa/Johannesburg').toFormat('dd LLL yyyy, HH:mm');
+}
+
 app.get('/alarms/current/today', async (req, res) => {
   try {
       const db = await readAlarms();
       const currentDate = DateTime.now().setZone('Africa/Johannesburg');
       const currentDay = days[currentDate.weekday % 7];
 
+      lastTimeChecked = formatReadableDate(currentDate);
+      console.log("[SERVER]: set last time: ", lastTimeChecked);
       const alarm = db.find(alarm => alarm.day === currentDay); // Find the first alarm for today
 
       if (alarm) {
