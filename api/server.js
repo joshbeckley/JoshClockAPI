@@ -1,3 +1,4 @@
+const { DateTime } = require('luxon');
 const express = require('express');
 const cors = require('cors'); // Import the CORS middleware
 const { v4: uuidv4 } = require('uuid');
@@ -28,79 +29,37 @@ async function readAlarms() {
     try {
       const result = await pool.query('SELECT * FROM alarms');
       data = result.rows; // `rows` is an array of objects
+      console.log("[SERVER]: Read all alarms");
       return data; // You can now use this data as a JavaScript object
     } catch (error) {
-      console.error('Error fetching data:', error);
+      console.error('[SERVER]: Error fetching data:', error);
       return null; // Handle errors gracefully
     }
   }
 
-// Write all data to database
-const writeAlarms = (data) => {
-    fs.writeFileSync(ALARMS_FILE, JSON.stringify(data, null, 2));
-};
-
 app.get('/', (req, res) => {
-    res.send('Server Is Online');
+  console.log("[SERVER]: Online");
+  res.send('Server Is Online');
 });
 
 app.get('/alarms', async (req, res) => {
     try {
         const db = await readAlarms(); // Wait for the promise to resolve
         res.json(db); // Sends the resolved array as JSON
+        console.log("[SERVER]: Sent all alarms");
     } catch (error) {
-        console.error('Error fetching alarms:', error);
+        console.error('[SERVER]: Error fetching alarms:', error);
         res.status(500).json({ error: 'Failed to fetch alarms' }); // Handle errors gracefully
     }
 });
 
 const days = ["Sunday", "Monday", "Tuesday", "Wednesday", "Thursday", "Friday", "Saturday"];
 
-// TODO: DOESNT WORK
-app.get('/alarms/current', async (req, res) => {
-    try {
-        const db = await readAlarms(); // Wait for the promise to resolve
-
-            // Vercel uses UTC time - so convert to UTC+2
-        // TODO: convert when in production
-        let currentDate = new Date(); // Get the current date and time
-        // currentDate.setHours(currentDate.getHours() + 2); // Convert to UTC+2 time
-        
-        let currentDay = days[currentDate.getDay()]; // Get the current day of the week (0-6)
-        
-        for (const alarm of db) {
-          if (alarm.day === currentDay) {  // Compare the current day to the alarm's day
-              const alarmDate = new Date(alarm.date);
-              const [hours, minutes] = alarm.time.split(":").map(Number);
-              alarmDate.setHours(hours);
-              alarmDate.setMinutes(minutes);
-              alarmDate.setSeconds(0);
-
-              const diff = alarmDate - currentDate; // Difference in milliseconds
-              if (diff <= 60000 && diff > 0) { // Check if the alarm is within 1 minute
-                  return res.status(201).json({ isAlarm: true, alarm });
-              }
-          }
-      }
-        
-
-        return res.status(200).json({ isAlarm: false, alarm: null}); 
-    } catch (error) {
-        console.error('Error fetching alarms:', error);
-        res.status(500).json({ error: 'Failed to fetch alarms' }); // Handle errors gracefully
-    }
-
-    
-    
-});
-
-
 app.get('/alarms/current/today', async (req, res) => {
   try {
       const db = await readAlarms();
-      const currentDate = new Date(Date.now());
-      currentDate.setHours(currentDate.getHours() + 2); // Convert to UTC+2
-      const currentDay = days[currentDate.getDay()];
+      const currentDate = DateTime.now().setZone('Africa/Johannesburg');
+      const currentDay = days[currentDate.weekday % 7];
 
       const alarm = db.find(alarm => alarm.day === currentDay); // Find the first alarm for today
 
@@ -110,7 +69,7 @@ app.get('/alarms/current/today', async (req, res) => {
 
       res.status(200).json({ isAlarm: false, alarm: null }); 
   } catch (error) {
-      console.error('Error fetching alarms:', error);
+      console.error('[SERVER]: Error fetching alarms:', error);
       res.status(500).json({ error: 'Failed to fetch alarms' });
   }
 });
@@ -127,7 +86,7 @@ async function insertAlarm(alarm) {
       const result = await pool.query(query, values);
       return result.rows[0];
     } catch (error) {
-      console.error('Error inserting alarm:', error);
+      console.error('[SERVER]: Error inserting alarm:', error);
       throw error; // Re-throw the error to handle it upstream if needed
     }
   }
@@ -167,14 +126,14 @@ async function deleteAlarmById(alarmId) {
     try {
       const result = await pool.query(query, [alarmId]);
       if (result.rowCount > 0) {
-        console.log('Alarm deleted successfully:', result.rows[0]); // Log the deleted record
+        console.log('[SERVER]: Alarm deleted successfully:', result.rows[0]); // Log the deleted record
         return result.rows[0];
       } else {
-        console.log('No alarm found with the given ID.');
+        console.log('[SERVER]: No alarm found with the given ID.');
         return null;
       }
     } catch (error) {
-      console.error('Error deleting alarm:', error);
+      console.error('[SERVER]: Error deleting alarm:', error);
       throw error; // Re-throw the error to handle it upstream if needed
     }
   }
@@ -199,5 +158,5 @@ app.delete('/alarms', async (req, res) => {
 
 // Start the server
 app.listen(PORT, () => {
-    console.log(`Server running at http://localhost:${PORT}`);
+    console.log(`[SERVER]: Server running at http://localhost:${PORT}`);
 });
